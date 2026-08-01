@@ -1,7 +1,10 @@
 {
-  "name": "laravel-mcp-server",
+  "name": "@falzz1010/laravel-mcp-server",
   "version": "1.0.0",
   "description": "Secure MCP Server for Laravel development — AI-powered artisan commands, log inspection, and code management with 10-layer security",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "laravel",
     "mcp",
@@ -18,12 +21,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/laravel-mcp-server.git"
+    "url": "https://github.com/Falzz1010/laravel-mcp-server.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/laravel-mcp-server/issues"
+    "url": "https://github.com/Falzz1010/laravel-mcp-server/issues"
   },
-  "homepage": "https://github.com/your-username/laravel-mcp-server#readme",
+  "homepage": "https://github.com/Falzz1010/laravel-mcp-server#readme",
   "type": "module",
   "main": "build/index.js",
   "bin": {
