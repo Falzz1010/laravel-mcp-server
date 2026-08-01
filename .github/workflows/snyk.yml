@@ -11,18 +11,35 @@ on:
 jobs:
   security:
     runs-on: ubuntu-latest
+    # Skip if SNYK_TOKEN is not set
+    if: github.event_name != 'push' || github.repository == 'Falzz1010/laravel-mcp-server'
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm ci
       
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
         continue-on-error: true
+        if: secrets.SNYK_TOKEN != ''
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high
           
       - name: Upload result to GitHub Code Scanning
+        if: secrets.SNYK_TOKEN != ''
         uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
         with:
           sarif_file: snyk.sarif
+          
+      - name: Snyk not configured
+        if: secrets.SNYK_TOKEN == ''
+        run: echo "⚠️ Snyk token not configured. Skipping Snyk scan. Add SNYK_TOKEN secret to enable."

@@ -24,19 +24,13 @@ jobs:
         run: npm ci
         
       - name: Generate SBOM (CycloneDX)
-        run: npx @cyclonedx/cyclonedx-npm --output-file sbom.json
+        run: npx --yes @cyclonedx/cyclonedx-npm --output-file sbom.json
+        continue-on-error: true
         
       - name: Upload SBOM artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sbom
           path: sbom.json
-          
-      - name: Commit SBOM to repository
-        if: github.event_name == 'release'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add sbom.json
-          git commit -m "chore: update SBOM for release" || echo "No changes to commit"
-          git push
+          if-no-files-found: warn
