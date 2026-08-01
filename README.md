@@ -4,10 +4,13 @@
 
 <div align="center">
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-green?logo=node.js)](https://nodejs.org/)
-[![Laravel](https://img.shields.io/badge/Laravel-8+-red?logo=laravel)](https://laravel.com/)
-[![MCP](https://img.shields.io/badge/MCP-1.30-purple)](https://modelcontextprotocol.io/)
+[![npm version](https://img.shields.io/npm/v/@falzz1010/laravel-mcp-server.svg?style=flat-square)](https://www.npmjs.com/package/@falzz1010/laravel-mcp-server)
+[![npm downloads](https://img.shields.io/npm/dm/@falzz1010/laravel-mcp-server.svg?style=flat-square)](https://www.npmjs.com/package/@falzz1010/laravel-mcp-server)
+[![GitHub](https://img.shields.io/github/stars/Falzz1010/laravel-mcp-server?style=flat-square)](https://github.com/Falzz1010/laravel-mcp-server)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?logo=typescript&style=flat-square)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green?logo=node.js&style=flat-square)](https://nodejs.org/)
+[![Laravel](https://img.shields.io/badge/Laravel-8+-red?logo=laravel&style=flat-square)](https://laravel.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
 </div>
 
@@ -169,11 +172,21 @@ Setiap kali `write_file` mengubah file yang sudah ada, server otomatis membuat b
 - **PHP** 8.0 atau lebih baru
 - **Laravel Project** (lokal di mesin kamu)
 
-### Install Dependencies
+### Install via npm (Recommended)
 
 ```bash
-# Clone repository (jika dari Git)
-git clone https://github.com/your-username/laravel-mcp-server.git
+# Install globally
+npm install -g @falzz1010/laravel-mcp-server
+
+# Verify installation
+laravel-mcp --version
+```
+
+### Install from Source
+
+```bash
+# Clone repository
+git clone https://github.com/Falzz1010/laravel-mcp-server.git
 cd laravel-mcp-server
 
 # Install dependencies
@@ -190,7 +203,7 @@ npm run build
 npm test
 
 # Expected output:
-# ✓ All security tests passed (40 tests)
+# ✓ All security tests passed (19 tests)
 ```
 
 ---
@@ -262,6 +275,24 @@ node build/index.js /path/to/your/laravel-project --dry-run
 
 Edit `claude_desktop_config.json` (biasanya di `%APPDATA%\Claude\` atau `~/.config/claude/`):
 
+#### Using Global npm Package (Recommended)
+
+```json
+{
+  "mcpServers": {
+    "laravel-dev": {
+      "command": "npx",
+      "args": [
+        "@falzz1010/laravel-mcp-server",
+        "E:/xampp/htdocs/my-laravel-app"
+      ]
+    }
+  }
+}
+```
+
+#### Using Local Installation
+
 ```json
 {
   "mcpServers": {
@@ -282,7 +313,26 @@ Edit `claude_desktop_config.json` (biasanya di `%APPDATA%\Claude\` atau `~/.conf
 
 ### VS Code / Cursor Configuration
 
+#### Using npm Package
+
 Edit `.vscode/settings.json` atau Cursor settings:
+
+```json
+{
+  "mcp.servers": {
+    "laravel": {
+      "command": "npx",
+      "args": [
+        "@falzz1010/laravel-mcp-server",
+        "${workspaceFolder}",
+        "--allow-write"
+      ]
+    }
+  }
+}
+```
+
+#### Using Local Installation
 
 ```json
 {
