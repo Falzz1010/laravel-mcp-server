@@ -1,0 +1,26 @@
+# Source files (only ship compiled build/)
+src/
+tests/
+*.test.ts
+
+# Documentation
+implementation_plan.md
+scratch/
+
+# Development files
+.vscode/
+.idea/
+tsconfig.json
+.gitignore
+.npmignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Temporary and test files
+tmp/
+temp/
+*.log
+.laravel-mcp-audit.jsonl
+.laravel-mcp-backup/

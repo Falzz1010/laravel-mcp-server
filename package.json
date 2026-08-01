@@ -1,0 +1,58 @@
+{
+  "name": "laravel-mcp-server",
+  "version": "1.0.0",
+  "description": "Secure MCP Server for Laravel development — AI-powered artisan commands, log inspection, and code management with 10-layer security",
+  "keywords": [
+    "laravel",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "claude",
+    "cursor",
+    "artisan",
+    "development",
+    "php",
+    "typescript"
+  ],
+  "author": "Laravel MCP Server Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/laravel-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/laravel-mcp-server/issues"
+  },
+  "homepage": "https://github.com/your-username/laravel-mcp-server#readme",
+  "type": "module",
+  "main": "build/index.js",
+  "bin": {
+    "laravel-mcp": "build/index.js"
+  },
+  "files": [
+    "build/**/*",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node build/index.js",
+    "test": "npm run build && node --test build/tests/*.test.js",
+    "inspect": "npx @modelcontextprotocol/inspector node build/index.js",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0"
+  }
+}

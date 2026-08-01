@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "laravel-dev": {
+      "command": "node",
+      "args": [
+        "E:/desain-ui/laravel-mcp-server/build/index.js",
+        "E:/xampp/htdocs/my-laravel-app"
+      ],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    },
+    "laravel-with-write": {
+      "command": "node",
+      "args": [
+        "E:/desain-ui/laravel-mcp-server/build/index.js",
+        "E:/projects/my-app",
+        "--allow-write"
+      ]
+    },
+    "laravel-full-access": {
+      "command": "node",
+      "args": [
+        "E:/desain-ui/laravel-mcp-server/build/index.js",
+        "E:/projects/experimental-app",
+        "--allow-write",
+        "--allow-tinker"
+      ]
+    }
+  }
+}

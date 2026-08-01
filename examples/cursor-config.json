@@ -1,0 +1,15 @@
+{
+  "mcp": {
+    "servers": {
+      "laravel": {
+        "command": "node",
+        "args": [
+          "${workspaceFolder}/../laravel-mcp-server/build/index.js",
+          "${workspaceFolder}",
+          "--allow-write"
+        ],
+        "env": {}
+      }
+    }
+  }
+}
