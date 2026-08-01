@@ -1,0 +1,38 @@
+name: Socket Security
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Monday
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  socket-security:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          
+      - name: Socket Security Analysis
+        uses: socketsecurity/socket-security-action@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          create-pr-comment: true
+          create-issue: false
+          
+      - name: Socket Report Summary
+        if: always()
+        run: |
+          echo "Socket Security scan completed"
+          echo "Check PR comments or workflow logs for details"

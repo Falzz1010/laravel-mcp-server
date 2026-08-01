@@ -55,7 +55,8 @@
     "inspect": "npx @modelcontextprotocol/inspector node build/index.js",
     "prepublishOnly": "npm run build",
     "publish:provenance": "npm publish --provenance --access public",
-    "verify": "npm audit signatures"
+    "verify": "npm audit signatures",
+    "security:socket": "socket npm audit"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

@@ -46,6 +46,7 @@ When installing this package, you may see alerts from npm or Socket.dev about:
 
 We maintain enterprise-grade security through:
 - ✅ [CodeQL Analysis](https://github.com/Falzz1010/laravel-mcp-server/security/code-scanning) - Automated code security scanning
+- ✅ [Socket Security](https://socket.dev/) - Real-time dependency and supply chain monitoring
 - ✅ [Dependabot](https://github.com/Falzz1010/laravel-mcp-server/security/dependabot) - Dependency vulnerability alerts
 - ✅ [Security Tests](https://github.com/Falzz1010/laravel-mcp-server/actions/workflows/security.yml) - 19 security-focused tests
 - 📋 [SBOM Available](SUPPLY_CHAIN_SECURITY.md) - Full software bill of materials
