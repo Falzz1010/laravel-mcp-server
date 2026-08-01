@@ -1,6 +1,6 @@
 {
   "name": "@falzz1010/laravel-mcp-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Secure MCP Server for Laravel development — AI-powered artisan commands, log inspection, and code management with 10-layer security",
   "publishConfig": {
     "access": "public"
