@@ -221,8 +221,8 @@ export function sanitizeTinkerCode(code: string): { safe: boolean; blocked: stri
   const blocked: string[] = [];
 
   for (const fn of DANGEROUS_FNS_TINKER) {
-    // Check regex pattern for fn occurrence
-    const pattern = new RegExp(`\\b${fn.replace(/::/g, "::")}\\b`, "i");
+    // Check if dangerous function exists in code
+    const pattern = new RegExp(`\\b${fn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, "i");
     if (pattern.test(code)) {
       blocked.push(fn);
     }
