@@ -49,3 +49,8 @@ Desktop.ini
 # Audit logs from testing (optional - remove if you want to track them)
 .laravel-mcp-audit.jsonl
 .laravel-mcp-backup/
+
+# Security scan results (local only)
+*.sarif
+security-report.json
+vulnerability-report.json

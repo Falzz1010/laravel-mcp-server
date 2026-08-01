@@ -63,6 +63,10 @@ Laravel MCP Server is designed with security as the **top priority**. This tool 
 
 We take security seriously. If you discover a security vulnerability:
 
+## 🚨 Reporting a Vulnerability
+
+We take security seriously. If you discover a security vulnerability:
+
 ### For Non-Critical Issues
 1. Open an issue on GitHub with the `security` label
 2. Include:
@@ -75,7 +79,7 @@ We take security seriously. If you discover a security vulnerability:
 **DO NOT open a public issue.**
 
 Instead:
-1. **Email security contact** (see repository maintainers)
+1. **Email:** Open a [private security advisory](https://github.com/Falzz1010/laravel-mcp-server/security/advisories/new) on GitHub
 2. Include:
    - Detailed description
    - Proof of concept (if safe to share)
@@ -92,6 +96,11 @@ Instead:
   - High: Within 2 weeks
   - Medium: Within 1 month
   - Low: Next regular release
+
+### Security Hall of Fame
+We appreciate security researchers who responsibly disclose vulnerabilities. Contributors will be acknowledged here (with permission):
+
+<!-- List will be populated as issues are reported and fixed -->
 
 ---
 

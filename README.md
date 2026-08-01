@@ -7,11 +7,14 @@
 [![npm version](https://img.shields.io/npm/v/@falzz1010/laravel-mcp-server.svg?style=flat-square)](https://www.npmjs.com/package/@falzz1010/laravel-mcp-server)
 [![npm downloads](https://img.shields.io/npm/dm/@falzz1010/laravel-mcp-server.svg?style=flat-square)](https://www.npmjs.com/package/@falzz1010/laravel-mcp-server)
 [![GitHub](https://img.shields.io/github/stars/Falzz1010/laravel-mcp-server?style=flat-square)](https://github.com/Falzz1010/laravel-mcp-server)
+[![OpenSSF Scorecard](https://img.shields.io/ossf-scorecard/github.com/Falzz1010/laravel-mcp-server?label=openssf%20scorecard&style=flat-square)](https://securityscorecards.dev/viewer/?uri=github.com/Falzz1010/laravel-mcp-server)
+[![Security Rating](https://img.shields.io/badge/Security-A+-brightgreen?style=flat-square)](SECURITY.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.5-blue?logo=typescript&style=flat-square)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green?logo=node.js&style=flat-square)](https://nodejs.org/)
 [![Laravel](https://img.shields.io/badge/Laravel-8+-red?logo=laravel&style=flat-square)](https://laravel.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Security: 10 Layers](https://img.shields.io/badge/Security-10%20Layers-green?style=flat-square)](SECURITY.md)
+[![SBOM](https://img.shields.io/badge/SBOM-Available-blue?style=flat-square)](sbom.json)
 
 </div>
 

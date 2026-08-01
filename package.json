@@ -40,7 +40,8 @@
     "build/**/*",
     "README.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "SECURITY.md"
   ],
   "engines": {
     "node": ">=18.0.0"
@@ -50,8 +51,11 @@
     "build": "tsc",
     "start": "node build/index.js",
     "test": "npm run build && node --test build/tests/security.test.js build/tests/full-security-audit.test.js",
+    "test:security": "npm audit && npm run test",
     "inspect": "npx @modelcontextprotocol/inspector node build/index.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "publish:provenance": "npm publish --provenance --access public",
+    "verify": "npm audit signatures"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",

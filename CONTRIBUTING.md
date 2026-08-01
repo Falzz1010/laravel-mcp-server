@@ -202,6 +202,10 @@ Security is critical for this project. If you find a security vulnerability:
 - [ ] Audit logging captures all operations
 - [ ] Dangerous commands properly blocked
 - [ ] Input sanitization comprehensive
+- [ ] No secrets in code or logs
+- [ ] Dependencies audited (`npm audit`)
+- [ ] SBOM generated and reviewed
+- [ ] OpenSSF Scorecard passing
 
 ## 📚 Documentation Standards
 
