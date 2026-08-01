@@ -31,6 +31,17 @@ This package **intentionally** requires system access for its core functionality
 
 **For local development only. Never use in production.**
 
+### 📢 Expected npm/Socket Security Alerts
+
+When installing this package, you may see alerts from npm or Socket.dev about:
+- **Shell Access** ✓ Required - safely executes `php artisan` commands
+- **Filesystem Access** ✓ Required - reads Laravel logs and source files  
+- **Environment Variables** ✓ Required - validates `APP_ENV` to block production
+- **Network Access** ✓ Required - MCP protocol communication
+- **AI-detected risks** ✓ Expected - automated scanners flag dev tools
+
+**These are NOT vulnerabilities** - they are legitimate features of a Laravel development tool, all protected by our security layers. See [SECURITY.md](SECURITY.md) for complete details on how each capability is secured.
+
 ### 🔐 Security Monitoring
 
 We maintain enterprise-grade security through:
