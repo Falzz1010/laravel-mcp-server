@@ -25,11 +25,22 @@
 This package **intentionally** requires system access for its core functionality (executing artisan commands, reading logs, etc.). All operations are protected by a [10-layer security system](SECURITY.md) including:
 - Input sanitization & command validation
 - Path traversal prevention
-- Production environment blocking
+- Production environment blocking  
 - Rate limiting & audit logging
 - No shell injection (uses `execFile` only)
 
 **For local development only. Never use in production.**
+
+### 🔐 Security Monitoring
+
+We maintain enterprise-grade security through:
+- ✅ [CodeQL Analysis](https://github.com/Falzz1010/laravel-mcp-server/security/code-scanning) - Automated code security scanning
+- ✅ [Dependabot](https://github.com/Falzz1010/laravel-mcp-server/security/dependabot) - Dependency vulnerability alerts
+- ✅ [Security Tests](https://github.com/Falzz1010/laravel-mcp-server/actions/workflows/security.yml) - 19 security-focused tests
+- 📋 [SBOM Available](SUPPLY_CHAIN_SECURITY.md) - Full software bill of materials
+- 📊 [OpenSSF Scorecard](https://securityscorecards.dev/viewer/?uri=github.com/Falzz1010/laravel-mcp-server) - Best practice monitoring (weekly)
+
+See [SUPPLY_CHAIN_SECURITY.md](SUPPLY_CHAIN_SECURITY.md) for complete security details.
 
 ---
 
