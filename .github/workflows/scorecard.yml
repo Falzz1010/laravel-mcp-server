@@ -1,11 +1,9 @@
 name: OpenSSF Scorecard
 
 on:
-  branch_protection_rule:
   schedule:
-    - cron: '0 0 * * 1'
-  push:
-    branches: [ main ]
+    - cron: '0 0 * * 1'  # Weekly on Monday
+  workflow_dispatch:  # Manual trigger
 
 permissions: read-all
 
@@ -17,7 +15,6 @@ jobs:
       security-events: write
       id-token: write
       contents: read
-      actions: read
       
     steps:
       - name: "Checkout code"
@@ -32,7 +29,7 @@ jobs:
           results_format: sarif
           publish_results: true
 
-      - name: "Upload to code-scanning"
+      - name: "Upload SARIF results"
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: results.sarif

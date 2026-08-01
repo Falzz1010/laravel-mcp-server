@@ -1,8 +1,6 @@
 name: SBOM Generation
 
 on:
-  push:
-    branches: [ main ]
   release:
     types: [ published ]
 
@@ -19,18 +17,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
           
       - name: Install dependencies
         run: npm ci
         
-      - name: Generate SBOM (CycloneDX)
+      - name: Generate SBOM
         run: npx --yes @cyclonedx/cyclonedx-npm --output-file sbom.json
-        continue-on-error: true
         
-      - name: Upload SBOM artifact
-        if: always()
+      - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
           name: sbom
           path: sbom.json
-          if-no-files-found: warn
