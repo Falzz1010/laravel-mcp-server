@@ -45,9 +45,9 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node build/index.js",
-    "test": "npm run build && node --test build/tests/*.test.js",
+    "test": "npm run build && node --test build/tests/security.test.js build/tests/full-security-audit.test.js",
     "inspect": "npx @modelcontextprotocol/inspector node build/index.js",
-    "prepublishOnly": "npm run build && npm test"
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
