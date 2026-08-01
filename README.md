@@ -11,8 +11,22 @@
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green?logo=node.js&style=flat-square)](https://nodejs.org/)
 [![Laravel](https://img.shields.io/badge/Laravel-8+-red?logo=laravel&style=flat-square)](https://laravel.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Security: 10 Layers](https://img.shields.io/badge/Security-10%20Layers-green?style=flat-square)](SECURITY.md)
 
 </div>
+
+---
+
+## ⚠️ Security Notice
+
+This package **intentionally** requires system access for its core functionality (executing artisan commands, reading logs, etc.). All operations are protected by a [10-layer security system](SECURITY.md) including:
+- Input sanitization & command validation
+- Path traversal prevention
+- Production environment blocking
+- Rate limiting & audit logging
+- No shell injection (uses `execFile` only)
+
+**For local development only. Never use in production.**
 
 ---
 

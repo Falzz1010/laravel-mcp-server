@@ -19,6 +19,10 @@
   ],
   "author": "Laravel MCP Server Contributors",
   "license": "MIT",
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/Falzz1010/laravel-mcp-server"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Falzz1010/laravel-mcp-server.git"
