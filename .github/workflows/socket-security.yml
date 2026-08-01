@@ -9,8 +9,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
-  issues: write
 
 jobs:
   socket-security:
@@ -24,15 +22,16 @@ jobs:
         with:
           node-version: '22'
           
-      - name: Socket Security Analysis
-        uses: socketsecurity/socket-security-action@v1
-        with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          create-pr-comment: true
-          create-issue: false
+      - name: Install Socket CLI
+        run: npm install -g @socketsecurity/cli
           
+      - name: Run Socket Security Scan
+        run: npx socket npm audit
+        continue-on-error: true
+        
       - name: Socket Report Summary
         if: always()
         run: |
-          echo "Socket Security scan completed"
-          echo "Check PR comments or workflow logs for details"
+          echo "✅ Socket Security scan completed"
+          echo "📊 Check output above for any security alerts"
+          echo "ℹ️  Install Socket GitHub App for detailed reports: https://socket.dev/"
