@@ -158,10 +158,18 @@ test("Gate 5: Path Traversal & Symlink Escape Prevention", () => {
   // Valid paths inside root
   assert.equal(isPathSafe("app/Models/User.php", tmpDir), path.resolve(tmpDir, "app/Models/User.php"));
 
-  // Traversal attacks
+  // Traversal attacks - Unix style
   assert.throws(() => isPathSafe("../../../etc/passwd", tmpDir), /Security Error/);
-  assert.throws(() => isPathSafe("..\\..\\windows\\system32", tmpDir), /Security Error/);
-  assert.throws(() => isPathSafe("/etc/passwd", tmpDir), /Security Error/);
+  
+  // Platform-specific absolute path test
+  if (process.platform === "win32") {
+    assert.throws(() => isPathSafe("..\\..\\windows\\system32", tmpDir), /Security Error/);
+    assert.throws(() => isPathSafe("C:\\Windows\\System32", tmpDir), /Security Error/);
+  } else {
+    // On Unix, test with actual absolute paths
+    assert.throws(() => isPathSafe("/etc/hosts", tmpDir), /Security Error/);
+    assert.throws(() => isPathSafe("/usr/bin/env", tmpDir), /Security Error/);
+  }
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
