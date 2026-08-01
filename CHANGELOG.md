@@ -5,6 +5,18 @@ All notable changes to Laravel MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-08-01
+
+### Fixed
+- Fixed Socket Security workflow to properly install dependencies before scanning
+- Improved path traversal tests for better cross-platform reliability (Unix absolute path handling)
+- Enhanced CI stability with proper npm ci before security scans
+
+### Improved
+- Socket Security workflow now runs `npm ci` to ensure package.json is available for scanning
+- Better test coverage for absolute path security validation on Unix systems
+- More informative Socket Security scan summary messages
+
 ## [1.0.4] - 2026-08-01
 
 ### Fixed

@@ -21,9 +21,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          
-      - name: Install Socket CLI
-        run: npm install -g @socketsecurity/cli
+      
+      - name: Install dependencies
+        run: npm ci
           
       - name: Run Socket Security Scan
         run: npx socket npm audit
@@ -34,4 +34,4 @@ jobs:
         run: |
           echo "✅ Socket Security scan completed"
           echo "📊 Check output above for any security alerts"
-          echo "ℹ️  Install Socket GitHub App for detailed reports: https://socket.dev/"
+          echo "ℹ️  Note: Alerts for shell/filesystem/env access are expected for this tool type"
