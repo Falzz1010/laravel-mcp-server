@@ -16,8 +16,19 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '22'
         cache: 'npm'
+    
+    - name: Create dummy Laravel project for tests
+      run: |
+        mkdir -p scratch/dummy-laravel/app/Http/Controllers
+        mkdir -p scratch/dummy-laravel/config
+        mkdir -p scratch/dummy-laravel/routes
+        mkdir -p scratch/dummy-laravel/storage/logs
+        touch scratch/dummy-laravel/artisan
+        echo "APP_ENV=local" > scratch/dummy-laravel/.env
+        echo "APP_ENV=staging" > scratch/dummy-laravel/.env.staging
+        chmod +x scratch/dummy-laravel/artisan
         
     - name: Install dependencies
       run: npm ci
