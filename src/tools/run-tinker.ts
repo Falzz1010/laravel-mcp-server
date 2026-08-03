@@ -4,8 +4,13 @@ import { ServerConfig } from "../utils/config.js";
 import { sanitizeTinkerCode } from "../utils/security.js";
 import { runArtisan } from "../utils/process.js";
 import { logAudit } from "../utils/audit.js";
+import { RateLimiter } from "../utils/rate-limiter.js";
 
-export function registerRunTinkerTool(server: McpServer, config: ServerConfig): void {
+export function registerRunTinkerTool(
+  server: McpServer,
+  config: ServerConfig,
+  rateLimiter: RateLimiter
+): void {
   if (!config.allowTinker) {
     return;
   }
@@ -23,7 +28,23 @@ export function registerRunTinkerTool(server: McpServer, config: ServerConfig): 
       }),
     },
     async ({ code }) => {
-      // 1. Sanitize code
+      // 1. Rate limit — tinker runs arbitrary PHP, so it always counts
+      const rateCheck = rateLimiter.checkRateLimit();
+      if (!rateCheck.allowed) {
+        logAudit({
+          tool: "run_tinker",
+          tier: "CAUTIOUS",
+          status: "BLOCKED",
+          reason: rateCheck.reason,
+        });
+        return {
+          isError: true,
+          content: [{ type: "text", text: `[RATE LIMIT BLOCKED] ${rateCheck.reason}` }],
+        };
+      }
+      rateLimiter.recordRequest();
+
+      // 2. Sanitize code
       const check = sanitizeTinkerCode(code);
       if (!check.safe) {
         logAudit({
@@ -62,7 +83,7 @@ export function registerRunTinkerTool(server: McpServer, config: ServerConfig): 
         };
       }
 
-      // 2. Execute code via artisan tinker
+      // 3. Execute code via artisan tinker
       // Note: Passing code via execute
       const result = await runArtisan("tinker", ["--execute", code], {
         laravelPath: config.laravelPath,

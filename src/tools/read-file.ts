@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ServerConfig } from "../utils/config.js";
-import { isPathSafe } from "../utils/security.js";
+import { isPathSafe, isReadAllowed } from "../utils/security.js";
 import { readFileContent } from "../utils/file.js";
 import { logAudit } from "../utils/audit.js";
 
@@ -19,15 +19,18 @@ export function registerReadFileTool(server: McpServer, config: ServerConfig): v
     },
     async ({ path: relPath }) => {
       try {
-        if (relPath.includes(".env")) {
+        const readCheck = isReadAllowed(relPath);
+        if (!readCheck.allowed) {
+          logAudit({
+            tool: "read_file",
+            tier: "READ_ONLY",
+            filePath: relPath,
+            status: "BLOCKED",
+            reason: readCheck.reason,
+          });
           return {
             isError: true,
-            content: [
-              {
-                type: "text",
-                text: "[SECURITY BLOCK] Use 'read_env' tool to read .env files with credential masking.",
-              },
-            ],
+            content: [{ type: "text", text: `[SECURITY BLOCK] ${readCheck.reason}` }],
           };
         }
 

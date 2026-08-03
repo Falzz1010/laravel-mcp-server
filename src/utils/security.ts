@@ -50,6 +50,10 @@ const DANGEROUS_COMMANDS = new Set([
   "stub:publish",
 ]);
 
+// ponytail: blocklist, not a sandbox. PHP is Turing-complete, so string
+// concatenation ($f = "file_get"."_contents"; $f(...)) defeats any keyword
+// filter. This raises the bar for accidental damage; it does not contain a
+// determined attacker. Real isolation needs a throwaway container/VM.
 const DANGEROUS_FNS_TINKER = [
   "exec",
   "system",
@@ -65,13 +69,25 @@ const DANGEROUS_FNS_TINKER = [
   "chmod",
   "chown",
   "file_put_contents",
+  "file_get_contents",
   "fwrite",
   "fopen",
+  "fread",
+  "readfile",
   "curl_exec",
+  "file",
+  "include",
+  "include_once",
+  "require",
+  "require_once",
+  "call_user_func",
+  "call_user_func_array",
   "eval",
   "assert",
   "ini_set",
   "putenv",
+  "getenv",
+  "env",
   "dl",
   "truncate",
   "forceDelete",
@@ -115,6 +131,24 @@ const BLOCKED_WRITE_PATHS = [
   "composer.lock",
   ".git",
 ];
+
+/**
+ * Files that carry credentials and must never be returned by read_file.
+ * .env is handled separately (laravel://env serves it masked); everything
+ * here has no masked equivalent, so reads are refused outright.
+ */
+const BLOCKED_READ_PATHS = [
+  ".git",
+  "auth.json",           // composer registry tokens
+  "storage",             // oauth-*.key, session/cache dumps
+  ".npmrc",
+  ".netrc",
+  ".ssh",
+  ".aws",
+  "node_modules/.bin",
+];
+
+const BLOCKED_READ_EXTENSIONS = new Set([".key", ".pem", ".p12", ".pfx", ".crt", ".cer", ".jks", ".keystore"]);
 
 export function checkEnvironment(laravelPath: string): void {
   const envPath = path.join(laravelPath, ".env");
@@ -224,23 +258,63 @@ export function sanitizeTinkerCode(code: string): { safe: boolean; blocked: stri
   };
 }
 
+/**
+ * True only when `target` is `root` itself or lives beneath it.
+ * A plain startsWith() would accept a sibling directory sharing the prefix
+ * (root `/srv/app` vs target `/srv/app-secrets`), so compare path segments.
+ */
+function isInside(root: string, target: string): boolean {
+  const rel = path.relative(root, target);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
 export function isPathSafe(relativePath: string, rootPath: string): string {
   const resolvedRoot = path.resolve(rootPath);
   const resolvedTarget = path.resolve(resolvedRoot, relativePath);
 
-  if (!resolvedTarget.startsWith(resolvedRoot)) {
+  if (!isInside(resolvedRoot, resolvedTarget)) {
     throw new Error(`Security Error: Path traversal attempt blocked: '${relativePath}'`);
   }
 
   // Check for symlink outside root if target exists
   if (fs.existsSync(resolvedTarget)) {
     const realPath = fs.realpathSync(resolvedTarget);
-    if (!realPath.startsWith(resolvedRoot)) {
+    if (!isInside(fs.realpathSync(resolvedRoot), realPath)) {
       throw new Error(`Security Error: Symlink points outside project root: '${relativePath}'`);
     }
   }
 
   return resolvedTarget;
+}
+
+export function isReadAllowed(relativePath: string): { allowed: boolean; reason: string } {
+  const normalized = relativePath.replace(/\\/g, "/").replace(/^\.\//, "").toLowerCase();
+
+  if (normalized === ".env" || normalized.split("/").some((seg) => seg.startsWith(".env"))) {
+    return {
+      allowed: false,
+      reason: "Reading .env directly is prohibited. Use the 'laravel://env' resource, which masks credentials.",
+    };
+  }
+
+  for (const blocked of BLOCKED_READ_PATHS) {
+    if (normalized === blocked || normalized.startsWith(`${blocked}/`)) {
+      return {
+        allowed: false,
+        reason: `Reading '${blocked}' is prohibited (may contain credentials). Use 'read_logs' for log files.`,
+      };
+    }
+  }
+
+  const ext = path.extname(normalized);
+  if (BLOCKED_READ_EXTENSIONS.has(ext)) {
+    return {
+      allowed: false,
+      reason: `Reading '${ext}' files is prohibited (private key material).`,
+    };
+  }
+
+  return { allowed: true, reason: "Path is permitted for reading." };
 }
 
 export function isWriteAllowed(relativePath: string): { allowed: boolean; reason: string } {
@@ -283,7 +357,12 @@ export function isWriteAllowed(relativePath: string): { allowed: boolean; reason
 }
 
 export function maskEnvValues(content: string): string {
-  const sensitivePattern = /(PASSWORD|SECRET|KEY|TOKEN|HASH|PRIVATE|CREDENTIAL|API_KEY|AUTH|MAIL_PASSWORD|AWS_|REDIS_PASSWORD|DB_PASSWORD|PUSHER_|MIX_PUSHER_)/i;
+  const sensitivePattern = /(PASSWORD|PASSWD|SECRET|KEY|TOKEN|HASH|PRIVATE|CREDENTIAL|API_KEY|AUTH|MAIL_PASSWORD|AWS_|REDIS_PASSWORD|DB_PASSWORD|PUSHER_|MIX_PUSHER_|USERNAME|_USER|_DSN)/i;
+
+  // A DSN carries its credentials in the value, not the key name:
+  // DATABASE_URL=mysql://root:hunter2@host/db — key matches nothing above.
+  // Userinfo may omit the user (redis://:pw@host), so the left side is optional.
+  const credentialInValue = /^[a-z][a-z0-9+.-]*:\/\/[^/\s:@]*:[^/\s@]+@/i;
 
   return content
     .split("\n")
@@ -297,7 +376,8 @@ export function maskEnvValues(content: string): string {
         return line;
       }
       const key = line.substring(0, eqIndex).trim();
-      if (sensitivePattern.test(key)) {
+      const value = line.substring(eqIndex + 1).trim().replace(/^["']|["']$/g, "");
+      if (sensitivePattern.test(key) || credentialInValue.test(value)) {
         return `${key}=***MASKED***`;
       }
       return line;

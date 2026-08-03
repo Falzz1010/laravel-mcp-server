@@ -67,7 +67,7 @@ async function main() {
   // 6. Initialize McpServer
   const server = new McpServer({
     name: "laravel-mcp-server",
-    version: "1.0.0",
+    version: "1.0.6",
   });
 
   // 7. Register Tools
@@ -75,8 +75,8 @@ async function main() {
   registerReadLogsTool(server, config);
   registerListRoutesTool(server, config);
   registerReadFileTool(server, config);
-  registerWriteFileTool(server, config);
-  registerRunTinkerTool(server, config);
+  registerWriteFileTool(server, config, rateLimiter);
+  registerRunTinkerTool(server, config, rateLimiter);
 
   // 8. Register Resources & Prompts
   registerLaravelResources(server, config);

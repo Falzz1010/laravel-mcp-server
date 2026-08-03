@@ -4,8 +4,13 @@ import { ServerConfig } from "../utils/config.js";
 import { isPathSafe, isWriteAllowed, computeFileHash } from "../utils/security.js";
 import { writeFileContent } from "../utils/file.js";
 import { logAudit } from "../utils/audit.js";
+import { RateLimiter } from "../utils/rate-limiter.js";
 
-export function registerWriteFileTool(server: McpServer, config: ServerConfig): void {
+export function registerWriteFileTool(
+  server: McpServer,
+  config: ServerConfig,
+  rateLimiter: RateLimiter
+): void {
   if (!config.allowWrite) {
     return;
   }
@@ -24,6 +29,23 @@ export function registerWriteFileTool(server: McpServer, config: ServerConfig): 
       }),
     },
     async ({ path: relPath, content }) => {
+      // 0. Rate limit — writes mutate the project, so they always count
+      const rateCheck = rateLimiter.checkRateLimit();
+      if (!rateCheck.allowed) {
+        logAudit({
+          tool: "write_file",
+          tier: "CAUTIOUS",
+          filePath: relPath,
+          status: "BLOCKED",
+          reason: rateCheck.reason,
+        });
+        return {
+          isError: true,
+          content: [{ type: "text", text: `[RATE LIMIT BLOCKED] ${rateCheck.reason}` }],
+        };
+      }
+      rateLimiter.recordRequest();
+
       // 1. Max size check
       if (content.length > 500 * 1024) {
         logAudit({

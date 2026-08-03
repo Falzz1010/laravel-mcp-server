@@ -11,6 +11,7 @@ import {
   validateDangerousFlags,
   sanitizeTinkerCode,
   isPathSafe,
+  isReadAllowed,
   isWriteAllowed,
   maskEnvValues,
 } from "../utils/security.js";
@@ -151,6 +152,78 @@ test("Rate Limiter", () => {
 
   // 4th request should be blocked
   assert.equal(limiter.checkRateLimit().allowed, false);
+});
+
+test("Path traversal: sibling directory sharing the root prefix", () => {
+  // Regression: startsWith() accepted /srv/app-secrets for root /srv/app.
+  const root = path.join(os.tmpdir(), "ptroot");
+  fs.mkdirSync(root, { recursive: true });
+  fs.mkdirSync(`${root}-secrets`, { recursive: true });
+
+  assert.throws(() => isPathSafe("../ptroot-secrets/creds.php", root), /Path traversal/);
+  assert.throws(() => isPathSafe("../../etc/passwd", root), /Path traversal/);
+
+  // Legitimate paths inside the root still resolve.
+  assert.equal(isPathSafe("app/Models/User.php", root), path.join(root, "app/Models/User.php"));
+  assert.equal(isPathSafe(".", root), root);
+});
+
+test("read_file blocklist: credential files beyond .env", () => {
+  assert.equal(isReadAllowed("app/Models/User.php").allowed, true);
+  assert.equal(isReadAllowed("routes/web.php").allowed, true);
+
+  // .env and every variant
+  assert.equal(isReadAllowed(".env").allowed, false);
+  assert.equal(isReadAllowed(".ENV").allowed, false);
+  assert.equal(isReadAllowed(".env.production").allowed, false);
+  assert.equal(isReadAllowed("app/../.env").allowed, false);
+
+  // Secrets with no masked equivalent
+  assert.equal(isReadAllowed(".git/config").allowed, false);
+  assert.equal(isReadAllowed("auth.json").allowed, false);
+  assert.equal(isReadAllowed("storage/oauth-private.key").allowed, false);
+  assert.equal(isReadAllowed("app/certs/server.pem").allowed, false);
+});
+
+test("Env masking: credentials embedded in DSN values", () => {
+  const masked = maskEnvValues(
+    [
+      "DATABASE_URL=mysql://root:hunter2@db/app",
+      "REDIS_URL=redis://:pw@host",
+      "DB_USERNAME=admin",
+      "DB_PASSWORD=hunter2",
+      "APP_URL=http://localhost",
+      "APP_ENV=local",
+      "# DATABASE_URL=mysql://commented:out@host/db",
+    ].join("\n")
+  );
+
+  assert.match(masked, /^DATABASE_URL=\*\*\*MASKED\*\*\*$/m);
+  assert.match(masked, /^REDIS_URL=\*\*\*MASKED\*\*\*$/m);
+  assert.match(masked, /^DB_USERNAME=\*\*\*MASKED\*\*\*$/m);
+  assert.match(masked, /^DB_PASSWORD=\*\*\*MASKED\*\*\*$/m);
+
+  // Non-secrets stay readable, comments untouched
+  assert.match(masked, /^APP_URL=http:\/\/localhost$/m);
+  assert.match(masked, /^APP_ENV=local$/m);
+  assert.match(masked, /^# DATABASE_URL=mysql:\/\/commented:out@host\/db$/m);
+
+  assert.doesNotMatch(masked, /hunter2/);
+});
+
+test("Tinker blocklist covers file reads and env access", () => {
+  for (const code of [
+    'echo file_get_contents("../../.env");',
+    'echo env("APP_KEY");',
+    'echo getenv("DB_PASSWORD");',
+    'include "/etc/passwd";',
+    'call_user_func("system", "ls");',
+  ]) {
+    assert.equal(sanitizeTinkerCode(code).safe, false, `should block: ${code}`);
+  }
+
+  assert.equal(sanitizeTinkerCode("User::count();").safe, true);
+  assert.equal(sanitizeTinkerCode('config("app.name");').safe, true);
 });
 
 test("CLI Config Parsing", () => {
