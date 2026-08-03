@@ -3,6 +3,12 @@ import { z } from "zod";
 import { ServerConfig } from "../utils/config.js";
 import { runArtisan } from "../utils/process.js";
 import { logAudit } from "../utils/audit.js";
+import { errorResult, textResult, type AuditContext } from "../utils/mcp.js";
+
+interface Route {
+  method?: string;
+  uri?: string;
+}
 
 export function registerListRoutesTool(server: McpServer, config: ServerConfig): void {
   server.registerTool(
@@ -22,6 +28,8 @@ export function registerListRoutesTool(server: McpServer, config: ServerConfig):
       }),
     },
     async ({ method, path: pathPattern }) => {
+      const audit: AuditContext = { tool: "list_routes", tier: "READ_ONLY" };
+
       const result = await runArtisan("route:list", ["--json"], {
         laravelPath: config.laravelPath,
         phpBinary: config.phpBinary,
@@ -29,55 +37,38 @@ export function registerListRoutesTool(server: McpServer, config: ServerConfig):
       });
 
       if (result.exitCode !== 0) {
-        logAudit({
-          tool: "list_routes",
-          tier: "READ_ONLY",
-          status: "ERROR",
-          reason: result.stderr,
-        });
-        return {
-          isError: true,
-          content: [{ type: "text", text: `[ERROR] Failed to fetch route list: ${result.stderr}` }],
-        };
+        logAudit({ ...audit, status: "ERROR", reason: result.stderr });
+        return errorResult(`[ERROR] Failed to fetch route list: ${result.stderr}`);
       }
 
+      // Anything that isn't a JSON array (plain text, an error object, "null")
+      // is handed back verbatim rather than failing the call.
+      let routes: Route[];
       try {
-        let routes = JSON.parse(result.stdout);
-
-        if (method) {
-          const upperMethod = method.toUpperCase();
-          routes = routes.filter((r: any) =>
-            r.method ? r.method.toUpperCase().includes(upperMethod) : false
-          );
+        const parsed = JSON.parse(result.stdout);
+        if (!Array.isArray(parsed)) {
+          return textResult(result.stdout);
         }
-
-        if (pathPattern) {
-          const lowerPattern = pathPattern.toLowerCase();
-          routes = routes.filter((r: any) =>
-            r.uri ? r.uri.toLowerCase().includes(lowerPattern) : false
-          );
-        }
-
-        logAudit({
-          tool: "list_routes",
-          tier: "READ_ONLY",
-          outputSize: JSON.stringify(routes).length,
-          status: "ALLOWED",
-        });
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(routes, null, 2),
-            },
-          ],
-        };
+        routes = parsed;
       } catch {
-        return {
-          content: [{ type: "text", text: result.stdout }],
-        };
+        return textResult(result.stdout);
       }
+
+      const filtered = routes
+        .filter((r) => matches(r.method, method))
+        .filter((r) => matches(r.uri, pathPattern));
+
+      const text = JSON.stringify(filtered, null, 2);
+      logAudit({ ...audit, outputSize: text.length, status: "ALLOWED" });
+      return textResult(text);
     }
   );
+}
+
+/** Case-insensitive substring match; an absent pattern matches everything. */
+function matches(value: string | undefined, pattern: string | undefined): boolean {
+  if (!pattern) {
+    return true;
+  }
+  return (value ?? "").toLowerCase().includes(pattern.toLowerCase());
 }

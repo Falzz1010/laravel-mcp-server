@@ -5,6 +5,9 @@ import { sanitizeTinkerCode } from "../utils/security.js";
 import { runArtisan } from "../utils/process.js";
 import { logAudit } from "../utils/audit.js";
 import { RateLimiter } from "../utils/rate-limiter.js";
+import { errorResult, textResult, denied, rateLimitGuard, type AuditContext } from "../utils/mcp.js";
+
+const TINKER_TIMEOUT_MS = 10_000;
 
 export function registerRunTinkerTool(
   server: McpServer,
@@ -28,82 +31,48 @@ export function registerRunTinkerTool(
       }),
     },
     async ({ code }) => {
-      // 1. Rate limit — tinker runs arbitrary PHP, so it always counts
-      const rateCheck = rateLimiter.checkRateLimit();
-      if (!rateCheck.allowed) {
-        logAudit({
-          tool: "run_tinker",
-          tier: "CAUTIOUS",
-          status: "BLOCKED",
-          reason: rateCheck.reason,
-        });
-        return {
-          isError: true,
-          content: [{ type: "text", text: `[RATE LIMIT BLOCKED] ${rateCheck.reason}` }],
-        };
+      const audit: AuditContext = { tool: "run_tinker", tier: "CAUTIOUS" };
+
+      // Tinker runs arbitrary PHP, so every attempt counts against the limit.
+      const limited = rateLimitGuard(rateLimiter, audit);
+      if (limited) {
+        return limited;
       }
       rateLimiter.recordRequest();
 
-      // 2. Sanitize code
+      // Note: run_artisan blocks "tinker" as DANGEROUS. Reaching it here is
+      // deliberate — the --allow-tinker opt-in replaces that gate with this
+      // keyword filter. See the ponytail: note on DANGEROUS_FNS_TINKER.
       const check = sanitizeTinkerCode(code);
       if (!check.safe) {
-        logAudit({
-          tool: "run_tinker",
-          tier: "DANGEROUS",
-          status: "BLOCKED",
-          reason: `Blocked functions: ${check.blocked.join(", ")}`,
-        });
-
-        return {
-          isError: true,
-          content: [
-            {
-              type: "text",
-              text: `[SECURITY BLOCK] Prohibited PHP functions/keywords detected: ${check.blocked.join(", ")}`,
-            },
-          ],
-        };
+        return denied(
+          { ...audit, tier: "DANGEROUS" },
+          "[SECURITY BLOCK] Prohibited PHP functions/keywords detected:",
+          check.blocked.join(", ")
+        );
       }
 
-      // Dry-run check
       if (config.dryRun) {
-        logAudit({
-          tool: "run_tinker",
-          tier: "CAUTIOUS",
-          status: "ALLOWED",
-          reason: "DRY-RUN MODE",
-        });
-        return {
-          content: [
-            {
-              type: "text",
-              text: `[DRY-RUN PREVIEW] Would execute in tinker:\n${code}`,
-            },
-          ],
-        };
+        logAudit({ ...audit, status: "ALLOWED", reason: "DRY-RUN MODE" });
+        return textResult(`[DRY-RUN PREVIEW] Would execute in tinker:\n${code}`);
       }
 
-      // 3. Execute code via artisan tinker
-      // Note: Passing code via execute
       const result = await runArtisan("tinker", ["--execute", code], {
         laravelPath: config.laravelPath,
         phpBinary: config.phpBinary,
-        timeoutMs: Math.min(config.commandTimeout, 10000), // Max 10s for tinker
+        timeoutMs: Math.min(config.commandTimeout, TINKER_TIMEOUT_MS),
       });
 
       logAudit({
-        tool: "run_tinker",
-        tier: "CAUTIOUS",
+        ...audit,
         exitCode: result.exitCode,
         outputSize: result.stdout.length,
         status: result.exitCode === 0 ? "ALLOWED" : "ERROR",
         duration: result.duration,
       });
 
-      return {
-        isError: result.exitCode !== 0,
-        content: [{ type: "text", text: result.stdout || result.stderr || "(No output)" }],
-      };
+      const output = result.stdout || result.stderr || "(No output)";
+      return result.exitCode === 0 ? textResult(output) : errorResult(output);
     }
   );
 }

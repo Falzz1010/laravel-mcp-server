@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ServerConfig } from "../utils/config.js";
 import { findLogFile, readLastLines } from "../utils/file.js";
 import { logAudit } from "../utils/audit.js";
+import { errorResult, textResult, type AuditContext } from "../utils/mcp.js";
 
 export function registerReadLogsTool(server: McpServer, config: ServerConfig): void {
   server.registerTool(
@@ -24,47 +25,31 @@ export function registerReadLogsTool(server: McpServer, config: ServerConfig): v
       }),
     },
     async ({ lines = 100, filter }) => {
+      const audit: AuditContext = { tool: "read_logs", tier: "READ_ONLY" };
+
       try {
         const logFile = await findLogFile(config.laravelPath);
-        let content = await readLastLines(logFile, lines);
+        // Note: the filter narrows the last N lines; it does not search the
+        // whole file for the last N matches.
+        const content = applyFilter(await readLastLines(logFile, lines), filter);
 
-        if (filter) {
-          const filterLower = filter.toLowerCase();
-          content = content
-            .split("\n")
-            .filter((l) => l.toLowerCase().includes(filterLower))
-            .join("\n");
-        }
-
-        logAudit({
-          tool: "read_logs",
-          tier: "READ_ONLY",
-          filePath: logFile,
-          outputSize: content.length,
-          status: "ALLOWED",
-        });
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: content || `(No log lines matched filter '${filter}')`,
-            },
-          ],
-        };
+        logAudit({ ...audit, filePath: logFile, outputSize: content.length, status: "ALLOWED" });
+        return textResult(content || `(No log lines matched filter '${filter}')`);
       } catch (err: any) {
-        logAudit({
-          tool: "read_logs",
-          tier: "READ_ONLY",
-          status: "ERROR",
-          reason: err.message,
-        });
-
-        return {
-          isError: true,
-          content: [{ type: "text", text: `[ERROR READING LOGS] ${err.message}` }],
-        };
+        logAudit({ ...audit, status: "ERROR", reason: err.message });
+        return errorResult(`[ERROR READING LOGS] ${err.message}`);
       }
     }
   );
+}
+
+function applyFilter(content: string, filter?: string): string {
+  if (!filter) {
+    return content;
+  }
+  const needle = filter.toLowerCase();
+  return content
+    .split("\n")
+    .filter((line) => line.toLowerCase().includes(needle))
+    .join("\n");
 }

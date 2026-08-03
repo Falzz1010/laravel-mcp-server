@@ -2,7 +2,30 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { ServerConfig } from "../utils/config.js";
 import { findLogFile, readLastLines, readFileContent } from "../utils/file.js";
-import { isPathSafe } from "../utils/security.js";
+import { isPathSafe, isReadAllowed } from "../utils/security.js";
+
+/** A prompt is a single user message; this is the whole shape. */
+function userPrompt(text: string) {
+  return { messages: [{ role: "user" as const, content: { type: "text" as const, text } }] };
+}
+
+/**
+ * Read a caller-named project file through the same gate as the read_file
+ * tool. Prompts are a read surface too — skipping isReadAllowed here is what
+ * once let prompts/get return .env unmasked. Errors become inline text so the
+ * prompt still renders.
+ */
+async function readGatedFile(relPath: string, laravelPath: string): Promise<string> {
+  try {
+    const readCheck = isReadAllowed(relPath);
+    if (!readCheck.allowed) {
+      throw new Error(readCheck.reason);
+    }
+    return await readFileContent(isPathSafe(relPath, laravelPath));
+  } catch (err: any) {
+    return `Could not read file: ${err.message}`;
+  }
+}
 
 export function registerLaravelPrompts(server: McpServer, config: ServerConfig): void {
   // 1. Prompt: debug-error
@@ -15,26 +38,17 @@ export function registerLaravelPrompts(server: McpServer, config: ServerConfig):
       },
     },
     async ({ lines = "50" }) => {
-      let logContent = "";
+      let logContent: string;
       try {
-        const lineCount = parseInt(lines, 10) || 50;
         const logFile = await findLogFile(config.laravelPath);
-        logContent = await readLastLines(logFile, lineCount);
+        logContent = await readLastLines(logFile, parseInt(lines, 10) || 50);
       } catch (err: any) {
         logContent = `Could not read log file: ${err.message}`;
       }
 
-      return {
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: `Here are the latest log entries from the Laravel application:\n\n\`\`\`\n${logContent}\n\`\`\`\n\nPlease analyze the errors, identify the root cause, and provide a step-by-step fix including code snippets or artisan commands required.`,
-            },
-          },
-        ],
-      };
+      return userPrompt(
+        `Here are the latest log entries from the Laravel application:\n\n\`\`\`\n${logContent}\n\`\`\`\n\nPlease analyze the errors, identify the root cause, and provide a step-by-step fix including code snippets or artisan commands required.`
+      );
     }
   );
 
@@ -48,19 +62,10 @@ export function registerLaravelPrompts(server: McpServer, config: ServerConfig):
         fields: z.string().describe("Comma-separated list of fields and types (e.g. 'title:string, price:decimal, status:enum')"),
       },
     },
-    async ({ model_name, fields }) => {
-      return {
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: `I need to create a complete CRUD in my Laravel application for entity: **${model_name}**.\nFields: ${fields}\n\nPlease generate:\n1. Artisan command to create Model with Migration and Controller\n2. Migration schema code\n3. Model mass assignment & relationships\n4. Resource Controller code (index, store, show, update, destroy)\n5. Form Request validation rules\n6. Route definitions for routes/api.php or routes/web.php`,
-            },
-          },
-        ],
-      };
-    }
+    async ({ model_name, fields }) =>
+      userPrompt(
+        `I need to create a complete CRUD in my Laravel application for entity: **${model_name}**.\nFields: ${fields}\n\nPlease generate:\n1. Artisan command to create Model with Migration and Controller\n2. Migration schema code\n3. Model mass assignment & relationships\n4. Resource Controller code (index, store, show, update, destroy)\n5. Form Request validation rules\n6. Route definitions for routes/api.php or routes/web.php`
+      )
   );
 
   // 3. Prompt: review-code
@@ -73,25 +78,11 @@ export function registerLaravelPrompts(server: McpServer, config: ServerConfig):
       },
     },
     async ({ file_path }) => {
-      let content = "";
-      try {
-        const safePath = isPathSafe(file_path, config.laravelPath);
-        content = await readFileContent(safePath);
-      } catch (err: any) {
-        content = `Could not read file: ${err.message}`;
-      }
+      const content = await readGatedFile(file_path, config.laravelPath);
 
-      return {
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: `Please perform a comprehensive code review for the following Laravel file (\`${file_path}\`):\n\n\`\`\`php\n${content}\n\`\`\`\n\nEvaluate:\n1. Laravel conventions & best practices (Repository pattern, Form Requests, Resources)\n2. Security vulnerabilities (SQL Injection, XSS, CSRF, Mass Assignment)\n3. Performance bottlenecks (N+1 queries, unindexed columns, heavy loops)\n4. Refactoring recommendations with concrete code blocks.`,
-            },
-          },
-        ],
-      };
+      return userPrompt(
+        `Please perform a comprehensive code review for the following Laravel file (\`${file_path}\`):\n\n\`\`\`php\n${content}\n\`\`\`\n\nEvaluate:\n1. Laravel conventions & best practices (Repository pattern, Form Requests, Resources)\n2. Security vulnerabilities (SQL Injection, XSS, CSRF, Mass Assignment)\n3. Performance bottlenecks (N+1 queries, unindexed columns, heavy loops)\n4. Refactoring recommendations with concrete code blocks.`
+      );
     }
   );
 }

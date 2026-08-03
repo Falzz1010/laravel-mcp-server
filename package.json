@@ -37,7 +37,10 @@
     "laravel-mcp": "build/index.js"
   },
   "files": [
-    "build/**/*",
+    "build/**/*.js",
+    "build/**/*.d.ts",
+    "!build/**/*.map",
+    "!build/tests/**",
     "README.md",
     "LICENSE",
     "CHANGELOG.md",

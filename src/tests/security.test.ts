@@ -226,6 +226,36 @@ test("Tinker blocklist covers file reads and env access", () => {
   assert.equal(sanitizeTinkerCode('config("app.name");').safe, true);
 });
 
+test("Every path that reads user-named files applies the read gate", () => {
+  // Regression: the review-code prompt called isPathSafe but skipped
+  // isReadAllowed, so prompts/get returned .env unmasked while read_file
+  // blocked it. Any new file-reading surface must consult isReadAllowed.
+  const readers = [
+    "src/tools/read-file.ts",
+    "src/prompts/laravel-prompts.ts",
+  ];
+
+  for (const rel of readers) {
+    const src = fs.readFileSync(path.join(process.cwd(), rel), "utf-8");
+    assert.match(src, /isReadAllowed/, `${rel} must gate reads with isReadAllowed`);
+  }
+});
+
+test("Resource config key is sanitized before reaching artisan", () => {
+  // laravel://config/{key} interpolates a URI segment into an artisan arg.
+  const src = fs.readFileSync(
+    path.join(process.cwd(), "src/resources/laravel-info.ts"),
+    "utf-8"
+  );
+  assert.match(src, /sanitizeArgs/, "config resource must sanitize the key");
+
+  // The filter itself must reject what could reach that arg.
+  for (const payload of ["app.name; rm -rf /", "$(whoami)", "../../etc/passwd", "a`id`"]) {
+    assert.throws(() => sanitizeArgs([payload]), /Security Error/, `unblocked: ${payload}`);
+  }
+  assert.deepEqual(sanitizeArgs(["app.name"]), ["app.name"]);
+});
+
 test("CLI Config Parsing", () => {
   const config = parseConfig([
     "node",

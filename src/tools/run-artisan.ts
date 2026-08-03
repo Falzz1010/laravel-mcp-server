@@ -9,6 +9,7 @@ import {
 import { runArtisan } from "../utils/process.js";
 import { logAudit } from "../utils/audit.js";
 import { RateLimiter } from "../utils/rate-limiter.js";
+import { errorResult, textResult, denied, rateLimitGuard, type AuditContext } from "../utils/mcp.js";
 
 export function registerRunArtisanTool(
   server: McpServer,
@@ -32,97 +33,50 @@ export function registerRunArtisanTool(
       }),
     },
     async ({ command, args = [] }) => {
-      // Step 1: Check command security classification
+      // 1. Classify the command. Tier drives both the audit trail and whether
+      //    the call counts against the rate limit, so it comes first.
       const check = isCommandAllowed(command);
+      const audit: AuditContext = { tool: "run_artisan", tier: check.tier, command, args };
+
       if (!check.allowed) {
-        logAudit({
-          tool: "run_artisan",
-          tier: check.tier,
-          command,
-          args,
-          status: "BLOCKED",
-          reason: check.reason,
-        });
-        return {
-          isError: true,
-          content: [{ type: "text", text: `[SECURITY BLOCK] ${check.reason}` }],
-        };
+        return denied(audit, "[SECURITY BLOCK]", check.reason);
       }
 
-      // Step 2: Check rate limiter
-      const rateCheck = rateLimiter.checkRateLimit();
-      if (!rateCheck.allowed) {
-        logAudit({
-          tool: "run_artisan",
-          tier: check.tier,
-          command,
-          args,
-          status: "BLOCKED",
-          reason: rateCheck.reason,
-        });
-        return {
-          isError: true,
-          content: [{ type: "text", text: `[RATE LIMIT BLOCKED] ${rateCheck.reason}` }],
-        };
+      // 2. Rate limit.
+      const limited = rateLimitGuard(rateLimiter, audit);
+      if (limited) {
+        return limited;
       }
 
-      // Step 3: Sanitize args & check dangerous flags
-      let cleanArgs: string[] = [];
+      // 3. Sanitize args and reject destructive flags.
+      let cleanArgs: string[];
       try {
         cleanArgs = sanitizeArgs(args);
         validateDangerousFlags(command, cleanArgs);
       } catch (err: any) {
-        logAudit({
-          tool: "run_artisan",
-          tier: check.tier,
-          command,
-          args,
-          status: "BLOCKED",
-          reason: err.message,
-        });
-        return {
-          isError: true,
-          content: [{ type: "text", text: `[SECURITY BLOCK] ${err.message}` }],
-        };
+        return denied(audit, "[SECURITY BLOCK]", err.message);
       }
 
-      // Record rate limit request for non-read-only
+      // Read-only commands don't consume budget; anything that can mutate does.
       if (check.tier !== "READ_ONLY") {
         rateLimiter.recordRequest();
       }
 
-      // Step 4: Dry-run check
       if (config.dryRun) {
-        logAudit({
-          tool: "run_artisan",
-          tier: check.tier,
-          command,
-          args: cleanArgs,
-          status: "ALLOWED",
-          reason: "DRY-RUN MODE",
-        });
-        return {
-          content: [
-            {
-              type: "text",
-              text: `[DRY-RUN PREVIEW] Would execute: php artisan ${command} ${cleanArgs.join(" ")}`,
-            },
-          ],
-        };
+        logAudit({ ...audit, args: cleanArgs, status: "ALLOWED", reason: "DRY-RUN MODE" });
+        return textResult(
+          `[DRY-RUN PREVIEW] Would execute: php artisan ${command} ${cleanArgs.join(" ")}`
+        );
       }
 
-      // Step 5: Execute via execFile
       const result = await runArtisan(command, cleanArgs, {
         laravelPath: config.laravelPath,
         phpBinary: config.phpBinary,
         timeoutMs: config.commandTimeout,
       });
 
-      // Step 6: Log audit
       logAudit({
-        tool: "run_artisan",
-        tier: check.tier,
-        command,
+        ...audit,
         args: cleanArgs,
         exitCode: result.exitCode,
         outputSize: result.stdout.length + result.stderr.length,
@@ -131,23 +85,16 @@ export function registerRunArtisanTool(
         reason: result.killed ? "Execution timed out" : undefined,
       });
 
-      let output = "";
-      if (result.stdout) {
-        output += result.stdout;
-      }
-      if (result.stderr) {
-        if (output) output += "\n--- STDERR ---\n";
-        output += result.stderr;
-      }
-
-      if (!output) {
-        output = "(Command executed successfully with no output)";
-      }
-
-      return {
-        isError: result.exitCode !== 0,
-        content: [{ type: "text", text: output }],
-      };
+      const output = formatOutput(result.stdout, result.stderr);
+      return result.exitCode === 0 ? textResult(output) : errorResult(output);
     }
   );
+}
+
+function formatOutput(stdout: string, stderr: string): string {
+  const parts = [stdout, stderr].filter(Boolean);
+  if (parts.length === 0) {
+    return "(Command executed successfully with no output)";
+  }
+  return parts.join("\n--- STDERR ---\n");
 }

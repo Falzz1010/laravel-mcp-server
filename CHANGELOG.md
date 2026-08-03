@@ -5,6 +5,33 @@ All notable changes to Laravel MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - 2026-08-03
+
+### Security
+- **Fixed credential disclosure via the `review-code` prompt.** `prompts/get` with
+  `file_path: ".env"` returned the file unmasked because the prompt applied only
+  `isPathSafe` and skipped the `isReadAllowed` gate that `read_file` uses. Prompts
+  are a read surface too and now go through the same gate. Affects 1.0.5 and earlier.
+- **Fixed unsanitized argument in the `laravel://config/{key}` resource.** The
+  user-controlled URI segment was passed straight into a `php artisan config:show`
+  argument while `run_artisan` sanitized its own args. It now goes through the
+  same `sanitizeArgs` filter.
+- Both fixes are locked by structural regression tests so a future refactor cannot
+  silently drop either gate.
+
+### Fixed
+- Server version is now read from `package.json` at runtime instead of being
+  hardcoded, so `serverInfo.version` can no longer drift from the released version.
+- Published tarball no longer ships compiled test files or source maps. The test
+  files contained attack-payload strings used as fixtures (reverse shells, `rm -rf /`),
+  which triggered supply-chain scanner alerts on the package itself.
+  73 entries / 191.4 KB unpacked -> 35 entries / 98.1 KB.
+
+### Improved
+- Extracted the three repeated MCP patterns (result shapes, block-and-audit,
+  rate-limit guard) into `src/utils/mcp.ts`. Tools, resources, and prompts are
+  180 lines shorter with no behaviour change.
+
 ## [1.0.5] - 2026-08-01
 
 ### Fixed

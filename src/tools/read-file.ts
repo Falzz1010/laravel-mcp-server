@@ -4,6 +4,7 @@ import { ServerConfig } from "../utils/config.js";
 import { isPathSafe, isReadAllowed } from "../utils/security.js";
 import { readFileContent } from "../utils/file.js";
 import { logAudit } from "../utils/audit.js";
+import { errorResult, textResult, denied, type AuditContext } from "../utils/mcp.js";
 
 export function registerReadFileTool(server: McpServer, config: ServerConfig): void {
   server.registerTool(
@@ -18,54 +19,22 @@ export function registerReadFileTool(server: McpServer, config: ServerConfig): v
       }),
     },
     async ({ path: relPath }) => {
+      const audit: AuditContext = { tool: "read_file", tier: "READ_ONLY", filePath: relPath };
+
       try {
         const readCheck = isReadAllowed(relPath);
         if (!readCheck.allowed) {
-          logAudit({
-            tool: "read_file",
-            tier: "READ_ONLY",
-            filePath: relPath,
-            status: "BLOCKED",
-            reason: readCheck.reason,
-          });
-          return {
-            isError: true,
-            content: [{ type: "text", text: `[SECURITY BLOCK] ${readCheck.reason}` }],
-          };
+          return denied(audit, "[SECURITY BLOCK]", readCheck.reason);
         }
 
         const safePath = isPathSafe(relPath, config.laravelPath);
         const content = await readFileContent(safePath);
 
-        logAudit({
-          tool: "read_file",
-          tier: "READ_ONLY",
-          filePath: relPath,
-          outputSize: content.length,
-          status: "ALLOWED",
-        });
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: content,
-            },
-          ],
-        };
+        logAudit({ ...audit, outputSize: content.length, status: "ALLOWED" });
+        return textResult(content);
       } catch (err: any) {
-        logAudit({
-          tool: "read_file",
-          tier: "READ_ONLY",
-          filePath: relPath,
-          status: "BLOCKED",
-          reason: err.message,
-        });
-
-        return {
-          isError: true,
-          content: [{ type: "text", text: `[SECURITY/FILE ERROR] ${err.message}` }],
-        };
+        logAudit({ ...audit, status: "BLOCKED", reason: err.message });
+        return errorResult(`[SECURITY/FILE ERROR] ${err.message}`);
       }
     }
   );

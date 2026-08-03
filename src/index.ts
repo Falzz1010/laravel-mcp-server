@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { parseConfig } from "./utils/config.js";
 import { checkEnvironment } from "./utils/security.js";
 import { findPhpBinary, killAllChildren } from "./utils/process.js";
@@ -20,6 +21,9 @@ import { registerRunTinkerTool } from "./tools/run-tinker.js";
 // Resources & Prompts
 import { registerLaravelResources } from "./resources/laravel-info.js";
 import { registerLaravelPrompts } from "./prompts/laravel-prompts.js";
+
+// Read once from package.json so the version can never drift from the release.
+const { version } = createRequire(import.meta.url)("../package.json");
 
 async function main() {
   const config = parseConfig(process.argv);
@@ -67,7 +71,7 @@ async function main() {
   // 6. Initialize McpServer
   const server = new McpServer({
     name: "laravel-mcp-server",
-    version: "1.0.6",
+    version,
   });
 
   // 7. Register Tools

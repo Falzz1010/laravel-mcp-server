@@ -5,6 +5,9 @@ import { isPathSafe, isWriteAllowed, computeFileHash } from "../utils/security.j
 import { writeFileContent } from "../utils/file.js";
 import { logAudit } from "../utils/audit.js";
 import { RateLimiter } from "../utils/rate-limiter.js";
+import { errorResult, textResult, denied, rateLimitGuard, type AuditContext } from "../utils/mcp.js";
+
+const MAX_CONTENT_BYTES = 500 * 1024;
 
 export function registerWriteFileTool(
   server: McpServer,
@@ -29,111 +32,46 @@ export function registerWriteFileTool(
       }),
     },
     async ({ path: relPath, content }) => {
-      // 0. Rate limit — writes mutate the project, so they always count
-      const rateCheck = rateLimiter.checkRateLimit();
-      if (!rateCheck.allowed) {
-        logAudit({
-          tool: "write_file",
-          tier: "CAUTIOUS",
-          filePath: relPath,
-          status: "BLOCKED",
-          reason: rateCheck.reason,
-        });
-        return {
-          isError: true,
-          content: [{ type: "text", text: `[RATE LIMIT BLOCKED] ${rateCheck.reason}` }],
-        };
+      const audit: AuditContext = { tool: "write_file", tier: "CAUTIOUS", filePath: relPath };
+
+      // Writes mutate the project, so every attempt counts against the limit.
+      const limited = rateLimitGuard(rateLimiter, audit);
+      if (limited) {
+        return limited;
       }
       rateLimiter.recordRequest();
 
-      // 1. Max size check
-      if (content.length > 500 * 1024) {
-        logAudit({
-          tool: "write_file",
-          tier: "CAUTIOUS",
-          filePath: relPath,
-          status: "BLOCKED",
-          reason: "Content exceeds 500KB limit",
-        });
-        return {
-          isError: true,
-          content: [{ type: "text", text: "[SECURITY BLOCK] Content size exceeds 500KB limit." }],
-        };
+      if (content.length > MAX_CONTENT_BYTES) {
+        return denied(audit, "[SECURITY BLOCK]", "Content size exceeds 500KB limit.");
       }
 
-      // 2. Write allowed check
       const writeCheck = isWriteAllowed(relPath);
       if (!writeCheck.allowed) {
-        logAudit({
-          tool: "write_file",
-          tier: "CAUTIOUS",
-          filePath: relPath,
-          status: "BLOCKED",
-          reason: writeCheck.reason,
-        });
-        return {
-          isError: true,
-          content: [{ type: "text", text: `[SECURITY BLOCK] ${writeCheck.reason}` }],
-        };
+        return denied(audit, "[SECURITY BLOCK]", writeCheck.reason);
       }
 
       try {
-        // 3. Path safe check
         const safePath = isPathSafe(relPath, config.laravelPath);
 
-        // Dry-run check
         if (config.dryRun) {
-          logAudit({
-            tool: "write_file",
-            tier: "CAUTIOUS",
-            filePath: relPath,
-            status: "ALLOWED",
-            reason: "DRY-RUN MODE",
-          });
-          return {
-            content: [
-              {
-                type: "text",
-                text: `[DRY-RUN PREVIEW] Would write ${content.length} bytes to ${relPath}`,
-              },
-            ],
-          };
+          logAudit({ ...audit, status: "ALLOWED", reason: "DRY-RUN MODE" });
+          return textResult(`[DRY-RUN PREVIEW] Would write ${content.length} bytes to ${relPath}`);
         }
 
-        // 4. Write with backup
         const { backupPath } = await writeFileContent(safePath, content, config.laravelPath);
-        const fileHash = computeFileHash(content);
 
         logAudit({
-          tool: "write_file",
-          tier: "CAUTIOUS",
-          filePath: relPath,
-          fileHash,
+          ...audit,
+          fileHash: computeFileHash(content),
           outputSize: content.length,
           status: "ALLOWED",
         });
 
-        let msg = `Successfully wrote ${content.length} bytes to ${relPath}.`;
-        if (backupPath) {
-          msg += ` Previous version backed up to ${backupPath}.`;
-        }
-
-        return {
-          content: [{ type: "text", text: msg }],
-        };
+        const backupNote = backupPath ? ` Previous version backed up to ${backupPath}.` : "";
+        return textResult(`Successfully wrote ${content.length} bytes to ${relPath}.${backupNote}`);
       } catch (err: any) {
-        logAudit({
-          tool: "write_file",
-          tier: "CAUTIOUS",
-          filePath: relPath,
-          status: "ERROR",
-          reason: err.message,
-        });
-
-        return {
-          isError: true,
-          content: [{ type: "text", text: `[WRITE ERROR] ${err.message}` }],
-        };
+        logAudit({ ...audit, status: "ERROR", reason: err.message });
+        return errorResult(`[WRITE ERROR] ${err.message}`);
       }
     }
   );
