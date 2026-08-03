@@ -116,16 +116,6 @@ const BLOCKED_WRITE_PATHS = [
   ".git",
 ];
 
-export function validateLaravelPath(laravelPath: string): void {
-  if (!fs.existsSync(laravelPath)) {
-    throw new Error(`Directory does not exist: ${laravelPath}`);
-  }
-  const artisanPath = path.join(laravelPath, "artisan");
-  if (!fs.existsSync(artisanPath)) {
-    throw new Error(`Target directory is not a valid Laravel project (missing 'artisan' file): ${laravelPath}`);
-  }
-}
-
 export function checkEnvironment(laravelPath: string): void {
   const envPath = path.join(laravelPath, ".env");
   if (fs.existsSync(envPath)) {

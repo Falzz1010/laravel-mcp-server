@@ -28,7 +28,7 @@ If any command fails, install the missing software first.
 cd ~/projects  # or C:\projects on Windows
 
 # Clone or download the server
-git clone https://github.com/your-username/laravel-mcp-server.git
+git clone https://github.com/Falzz1010/laravel-mcp-server.git
 cd laravel-mcp-server
 
 # Install dependencies
@@ -43,7 +43,7 @@ npm test
 
 **Expected output:**
 ```
-✓ All tests passed (40 tests)
+✓ All security tests passed (19 tests)
 ```
 
 ## Step 2: Configure Your AI Client
@@ -211,55 +211,14 @@ Restart your AI client, then test:
 
 ## Common Issues
 
-### "Server not starting"
+Server won't start? Check `npm run build` ran, paths are absolute, and the Laravel path contains an `artisan` file. Then test it directly:
 
-**Check:**
-1. Did you run `npm run build`?
-2. Are paths absolute (not relative)?
-3. Is Node.js 18+ installed?
-4. Does the Laravel project path have an `artisan` file?
-
-**Test manually:**
 ```bash
 node /path/to/laravel-mcp-server/build/index.js /path/to/laravel-project
-
-# Should output:
-# [INFO] Laravel MCP Server initialized.
 # [INFO] Laravel MCP Server running on stdio transport.
 ```
 
-### "Invalid Laravel path"
-
-**Problem:** Path doesn't point to Laravel root.
-
-**Solution:** Make sure path has these files/folders:
-```
-your-laravel-app/
-  ├── artisan       ← Must exist
-  ├── app/          ← Must exist
-  ├── config/       ← Must exist
-  └── routes/       ← Must exist
-```
-
-### "Refusing to run in PRODUCTION"
-
-**Problem:** Your `.env` file has `APP_ENV=production`.
-
-**Solution:**
-```bash
-# Edit .env in your Laravel project
-APP_ENV=local   # Change production to local
-```
-
-This is a **safety feature** — the server refuses to run against production!
-
-### Tools not appearing in AI client
-
-**Check:**
-1. Restart the AI client completely (not just refresh)
-2. Check config file for JSON syntax errors
-3. Look for error messages in AI client logs
-4. Test server manually (see above)
+Every other error — invalid path, production refusal, PHP not found, blocked commands, tools missing from the client — is covered in [README — Troubleshooting](README.md#-troubleshooting).
 
 ## Next Steps
 
@@ -270,7 +229,7 @@ This is a **safety feature** — the server refuses to run against production!
 **Now you can:**
 
 1. **Read the full README** — [README.md](README.md)
-   - Learn about all 7 tools
+   - Learn about all 6 tools
    - Understand security features
    - See usage examples
 
@@ -284,10 +243,10 @@ This is a **safety feature** — the server refuses to run against production!
    - Learn about audit logging
    - See best practices
 
-4. **Read implementation plan** — [implementation_plan.md](implementation_plan.md)
-   - Deep technical details
-   - Architecture diagrams
-   - Full security specification
+4. **Read the source** — [`src/utils/security.ts`](src/utils/security.ts)
+   - Command tiers and blocklists
+   - Path and write validation
+   - Full security implementation
 
 ## Getting Help
 

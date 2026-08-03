@@ -182,18 +182,7 @@ DEBUG=mcp:* npm test
 
 ## 🔒 Security Contributions
 
-Security is critical for this project. If you find a security vulnerability:
-
-### For Non-Critical Issues
-- Open a regular issue with the `security` label
-- Include steps to reproduce
-- Suggest a fix if possible
-
-### For Critical Issues
-- **DO NOT** open a public issue
-- Email maintainers directly (see README)
-- Include detailed reproduction steps
-- Wait for confirmation before disclosure
+Found a vulnerability? Reporting process and disclosure timelines: [SECURITY.md](SECURITY.md#-reporting-a-vulnerability). Never open a public issue for a critical one.
 
 ### Security Testing Checklist
 - [ ] No shell injection possible
@@ -204,7 +193,6 @@ Security is critical for this project. If you find a security vulnerability:
 - [ ] Input sanitization comprehensive
 - [ ] No secrets in code or logs
 - [ ] Dependencies audited (`npm audit`)
-- [ ] SBOM generated and reviewed
 - [ ] OpenSSF Scorecard passing
 
 ## 📚 Documentation Standards

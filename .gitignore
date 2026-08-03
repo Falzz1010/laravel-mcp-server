@@ -9,10 +9,6 @@ dist/
 *.d.ts
 *.d.ts.map
 
-# Keep test files
-!tests/**/*.test.js
-!tests/**/*.test.d.ts
-
 # Environment
 .env
 .env.local

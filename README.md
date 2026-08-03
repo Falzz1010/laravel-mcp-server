@@ -14,7 +14,6 @@
 [![Laravel](https://img.shields.io/badge/Laravel-8+-red?logo=laravel&style=flat-square)](https://laravel.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Security: 10 Layers](https://img.shields.io/badge/Security-10%20Layers-green?style=flat-square)](SECURITY.md)
-[![SBOM](https://img.shields.io/badge/SBOM-Available-blue?style=flat-square)](sbom.json)
 
 </div>
 
@@ -46,13 +45,11 @@ When installing this package, you may see alerts from npm or Socket.dev about:
 
 We maintain enterprise-grade security through:
 - ✅ [CodeQL Analysis](https://github.com/Falzz1010/laravel-mcp-server/security/code-scanning) - Automated code security scanning
-- ✅ [Socket Security](https://socket.dev/) - Real-time dependency and supply chain monitoring
 - ✅ [Dependabot](https://github.com/Falzz1010/laravel-mcp-server/security/dependabot) - Dependency vulnerability alerts
 - ✅ [Security Tests](https://github.com/Falzz1010/laravel-mcp-server/actions/workflows/security.yml) - 19 security-focused tests
-- 📋 [SBOM Available](SUPPLY_CHAIN_SECURITY.md) - Full software bill of materials
 - 📊 [OpenSSF Scorecard](https://securityscorecards.dev/viewer/?uri=github.com/Falzz1010/laravel-mcp-server) - Best practice monitoring (weekly)
 
-See [SUPPLY_CHAIN_SECURITY.md](SUPPLY_CHAIN_SECURITY.md) for complete security details.
+See [SECURITY.md](SECURITY.md) for complete security details.
 
 ---
 
@@ -96,7 +93,6 @@ Laravel MCP Server adalah **MCP (Model Context Protocol) Server** berbasis TypeS
 | **`run_artisan`** | Jalankan perintah artisan yang aman | 🟢 Always Active |
 | **`read_logs`** | Baca Laravel logs dengan filter | 🟢 Always Active |
 | **`list_routes`** | Lihat semua routes dengan filter | 🟢 Always Active |
-| **`read_env`** | Lihat `.env` dengan credential masking | 🟡 Masked by Default |
 | **`read_file`** | Baca source code proyek | 🟢 Always Active |
 | **`write_file`** | Tulis/edit file proyek | 🔴 Requires `--allow-write` |
 | **`run_tinker`** | Jalankan PHP code via Tinker | 🔴 Requires `--allow-tinker` |
@@ -157,7 +153,7 @@ vendor:publish   → Bisa overwrite file penting
 package:discover → Security risk
 ```
 
-**Lihat full list di:** [implementation_plan.md - Tier DANGEROUS](implementation_plan.md#tier-dangerous)
+**Lihat full list di:** [`src/utils/security.ts`](src/utils/security.ts) (`DANGEROUS_COMMANDS`)
 
 ### File Write Protection
 
@@ -262,7 +258,7 @@ node build/index.js /path/to/your/laravel-project
 - ✅ Jalankan perintah artisan READ_ONLY (`route:list`, `about`, dll)
 - ✅ Baca logs (`read_logs`)
 - ✅ Baca source code (`read_file`)
-- ✅ Lihat `.env` dengan masking (`read_env`)
+- ✅ Lihat `.env` dengan masking (resource `laravel://env`)
 - ❌ Tidak bisa menulis file
 - ❌ Tidak bisa jalankan Tinker
 
@@ -570,25 +566,7 @@ Lihat semua routes dengan optional filter.
 }
 ```
 
-### 4. `read_env`
-
-Baca file `.env` dengan credential masking.
-
-**Parameters:**
-```typescript
-{
-  show_values?: boolean;    // Default: false (mask sensitive values)
-}
-```
-
-**Masked Keys:**
-```
-PASSWORD, SECRET, KEY, TOKEN, HASH, PRIVATE, CREDENTIAL,
-API_KEY, AUTH, MAIL_PASSWORD, AWS_*, REDIS_PASSWORD,
-DB_PASSWORD, PUSHER_*, MIX_PUSHER_*
-```
-
-### 5. `read_file`
+### 4. `read_file`
 
 Baca source code dari proyek Laravel.
 
@@ -612,9 +590,9 @@ Baca source code dari proyek Laravel.
 **Security:**
 - ✅ Path traversal protection
 - ✅ Max file size: 1MB
-- ❌ Cannot read `.env` (use `read_env` instead)
+- ❌ Cannot read `.env` (use resource `laravel://env`, masked)
 
-### 6. `write_file` (Requires `--allow-write`)
+### 5. `write_file` (Requires `--allow-write`)
 
 Tulis/edit file di proyek Laravel.
 
@@ -644,7 +622,7 @@ Tulis/edit file di proyek Laravel.
 - ✅ Max file size: 500KB
 - ❌ Cannot write to `.env`, `vendor/`, `node_modules/`, dll
 
-### 7. `run_tinker` (Requires `--allow-tinker`)
+### 6. `run_tinker` (Requires `--allow-tinker`)
 
 Jalankan kode PHP via Tinker.
 
@@ -941,9 +919,9 @@ MIT License — feel free to use in your projects!
 
 ## 📞 Support
 
-- 📖 **Documentation:** [implementation_plan.md](implementation_plan.md)
-- 🐛 **Bug Reports:** [GitHub Issues](https://github.com/your-username/laravel-mcp-server/issues)
-- 💬 **Discussions:** [GitHub Discussions](https://github.com/your-username/laravel-mcp-server/discussions)
+- 📖 **Documentation:** [QUICK_START.md](QUICK_START.md) · [SECURITY.md](SECURITY.md)
+- 🐛 **Bug Reports:** [GitHub Issues](https://github.com/Falzz1010/laravel-mcp-server/issues)
+- 💬 **Discussions:** [GitHub Discussions](https://github.com/Falzz1010/laravel-mcp-server/discussions)
 
 ---
 

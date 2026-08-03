@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import fs from "node:fs";
+import path from "node:path";
 import { parseConfig } from "./utils/config.js";
-import { validateLaravelPath, checkEnvironment } from "./utils/security.js";
+import { checkEnvironment } from "./utils/security.js";
 import { findPhpBinary, killAllChildren } from "./utils/process.js";
 import { initAuditLogger, logAudit } from "./utils/audit.js";
 import { RateLimiter } from "./utils/rate-limiter.js";
@@ -11,7 +13,6 @@ import { RateLimiter } from "./utils/rate-limiter.js";
 import { registerRunArtisanTool } from "./tools/run-artisan.js";
 import { registerReadLogsTool } from "./tools/read-logs.js";
 import { registerListRoutesTool } from "./tools/list-routes.js";
-import { registerReadEnvTool } from "./tools/read-env.js";
 import { registerReadFileTool } from "./tools/read-file.js";
 import { registerWriteFileTool } from "./tools/write-file.js";
 import { registerRunTinkerTool } from "./tools/run-tinker.js";
@@ -24,10 +25,8 @@ async function main() {
   const config = parseConfig(process.argv);
 
   // 1. Validate target directory is a valid Laravel project
-  try {
-    validateLaravelPath(config.laravelPath);
-  } catch (err: any) {
-    console.error(`[FATAL ERROR] Invalid Laravel path: ${err.message}`);
+  if (!fs.existsSync(path.join(config.laravelPath, "artisan"))) {
+    console.error(`[FATAL ERROR] Not a Laravel project (missing 'artisan'): ${config.laravelPath}`);
     process.exit(1);
   }
 
@@ -75,7 +74,6 @@ async function main() {
   registerRunArtisanTool(server, config, rateLimiter);
   registerReadLogsTool(server, config);
   registerListRoutesTool(server, config);
-  registerReadEnvTool(server, config);
   registerReadFileTool(server, config);
   registerWriteFileTool(server, config);
   registerRunTinkerTool(server, config);

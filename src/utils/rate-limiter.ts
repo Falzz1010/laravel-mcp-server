@@ -63,9 +63,4 @@ export class RateLimiter {
     this.timestamps.push(now);
     this.lastRequestTime = now;
   }
-
-  public reset(): void {
-    this.timestamps = [];
-    this.lastRequestTime = 0;
-  }
 }

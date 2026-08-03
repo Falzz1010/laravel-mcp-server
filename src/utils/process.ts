@@ -87,9 +87,9 @@ export function runArtisan(
   });
 }
 
-export function findPhpBinary(customPath: string = "php"): Promise<string> {
+export function findPhpBinary(customPath: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    execFile(customPath, ["-v"], (error, stdout) => {
+    execFile(customPath, ["-v"], (error) => {
       if (error) {
         reject(
           new Error(

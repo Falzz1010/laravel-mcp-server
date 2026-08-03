@@ -32,24 +32,7 @@ export function registerRunArtisanTool(
       }),
     },
     async ({ command, args = [] }) => {
-      // Step 1: Check rate limiter
-      const rateCheck = rateLimiter.checkRateLimit();
-      if (!rateCheck.allowed) {
-        logAudit({
-          tool: "run_artisan",
-          tier: "UNKNOWN",
-          command,
-          args,
-          status: "BLOCKED",
-          reason: rateCheck.reason,
-        });
-        return {
-          isError: true,
-          content: [{ type: "text", text: `[RATE LIMIT BLOCKED] ${rateCheck.reason}` }],
-        };
-      }
-
-      // Step 2: Check command security classification
+      // Step 1: Check command security classification
       const check = isCommandAllowed(command);
       if (!check.allowed) {
         logAudit({
@@ -63,6 +46,23 @@ export function registerRunArtisanTool(
         return {
           isError: true,
           content: [{ type: "text", text: `[SECURITY BLOCK] ${check.reason}` }],
+        };
+      }
+
+      // Step 2: Check rate limiter
+      const rateCheck = rateLimiter.checkRateLimit();
+      if (!rateCheck.allowed) {
+        logAudit({
+          tool: "run_artisan",
+          tier: check.tier,
+          command,
+          args,
+          status: "BLOCKED",
+          reason: rateCheck.reason,
+        });
+        return {
+          isError: true,
+          content: [{ type: "text", text: `[RATE LIMIT BLOCKED] ${rateCheck.reason}` }],
         };
       }
 

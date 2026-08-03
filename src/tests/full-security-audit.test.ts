@@ -5,7 +5,6 @@ import path from "node:path";
 import os from "node:os";
 
 import {
-  validateLaravelPath,
   checkEnvironment,
   classifyCommand,
   isCommandAllowed,

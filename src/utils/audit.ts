@@ -1,12 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import type { CommandTier } from "./security.js";
 
 export interface AuditEntry {
   timestamp: string;
   sessionId: string;
   tool: string;
-  tier: string;
+  tier: CommandTier;
   command?: string;
   args?: string[];
   filePath?: string;
@@ -20,7 +21,6 @@ export interface AuditEntry {
 
 let currentSessionId = "";
 let auditFilePath = "";
-let sessionStats = { total: 0, allowed: 0, blocked: 0 };
 
 export function initAuditLogger(laravelPath: string): string {
   currentSessionId = crypto.randomBytes(6).toString("hex");
@@ -44,13 +44,6 @@ export function initAuditLogger(laravelPath: string): string {
 }
 
 export function logAudit(entry: Omit<AuditEntry, "timestamp" | "sessionId">): void {
-  sessionStats.total++;
-  if (entry.status === "ALLOWED") {
-    sessionStats.allowed++;
-  } else if (entry.status === "BLOCKED") {
-    sessionStats.blocked++;
-  }
-
   const fullEntry: AuditEntry = {
     timestamp: new Date().toISOString(),
     sessionId: currentSessionId || "unknown",
@@ -66,8 +59,4 @@ export function logAudit(entry: Omit<AuditEntry, "timestamp" | "sessionId">): vo
       console.error("[AUDIT LOG ERROR]", err);
     }
   }
-}
-
-export function getAuditStats(): { total: number; allowed: number; blocked: number } {
-  return { ...sessionStats };
 }
